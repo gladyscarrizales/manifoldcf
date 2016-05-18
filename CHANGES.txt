@@ -1,7 +1,54 @@
 ManifoldCF Change Log
 $Id$
 
-======================= 2.4-dev =====================
+======================= 2.5-dev =====================
+
+CONNECTORS-1309: SharePoint connector would blow up looking for
+lists when SharePoint returned non-list entities.
+(Phil Reithmuller, Karl Wright)
+
+CONNECTORS-1315: Handle control characters in ES connector.
+(Silvio Meier, Karl Wright)
+
+CONNECTORS-1313: Add multivalued data support to JDBC connector.
+(Luca Alciata, Karl Wright)
+
+CONNECTORS-1312: Treat "connection reset by peer" same way as "busy"
+in JCIFS connector.
+(Konstantin Avdeev, Karl Wright)
+
+CONNECTORS-1308: Update to Tika 1.12, and all associated downstream
+dependencies.
+(Karl Wright)
+
+CONNECTORS-1305: Skip documents that get server-side resource
+problems in JCIFS connector.
+(Konstantin Avdeev, Karl Wright)
+
+CONNECTORS-1189: Fix SearchBlox's test cases so that they don't depend on JDK hash order.
+(Naveen.A.N, Ahmet Arslan)
+
+CONNECTORS-1302: Catch newer version of 'in-use' SmbException in
+JCIFS connector.
+(Vince McNamara, Karl Wright)
+
+CONNECTORS-1301: Addition of SSL to LDAP connector broke non-SSL
+functionality.
+(Yulin He, Karl Wright)
+
+CONNECTORS-1297: Detect symlink in JCifs connector and explicitly
+skip in that case.
+(Konstantin Avdeev, Karl Wright)
+
+======================= Release 2.4 =====================
+
+CONNECTORS-1296: Revamp email notification connector to do
+SMTP and be more configurable.
+(Markus Schuch, Karl Wright)
+
+CONNECTORS-1295: JCIFS connector ignoring max file length value
+sometimes.
+(Konstantin Avdeev, Karl Wright)
 
 CONNECTORS-1293: Duplication of attribute names in the UI when
 multiple languages are installed in Documentum.
