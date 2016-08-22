@@ -291,7 +291,7 @@ public class Page extends ConfluenceResource{
           String webUrl = (String) links.optString(KEY_WEBUI, "");
           page.urlContext = (String) links.optString(KEY_CONTEXT, "");
           page.baseUrl = (String) links.optString(KEY_BASE, "");
-          page.webUrl = page.baseUrl + page.urlContext + webUrl;
+          page.webUrl = page.baseUrl + webUrl;
 
         }
 
@@ -340,7 +340,7 @@ public class Page extends ConfluenceResource{
           JSONObject view = (JSONObject) body.optJSONObject(KEY_VIEW);
           if (view != null) {
             page.content = view.optString(KEY_VALUE, null);
-            page.length = page.content.getBytes().length;
+            page.length = page.content.getBytes(StandardCharsets.UTF_8).length;
           }
         }
 

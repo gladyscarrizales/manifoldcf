@@ -149,32 +149,42 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
     throws ManifoldCFException {
 
     try {
+      LDAPProtocolEnum ldapProtocol = retrieveLDAPProtocol();
       if (session == null) {
         if (serverName == null || serverName.length() == 0) {
+          Logging.authorityConnectors.error("Server name parameter missing but required");
           throw new ManifoldCFException("Server name parameter missing but required");
         }
         if (serverPort == null || serverPort.length() == 0) {
+          Logging.authorityConnectors.error("Server port parameter missing but required");
           throw new ManifoldCFException("Server port parameter missing but required");
         }
         if (serverBase == null) {
+          Logging.authorityConnectors.error("Server base parameter missing but required");
           throw new ManifoldCFException("Server base parameter missing but required");
         }
         if (userBase == null) {
+          Logging.authorityConnectors.error("User base parameter missing but required");
           throw new ManifoldCFException("User base parameter missing but required");
         }
         if (userSearch == null || userSearch.length() == 0) {
+          Logging.authorityConnectors.error("User search expression missing but required");
           throw new ManifoldCFException("User search expression missing but required");
         }
         if (groupBase == null) {
+          Logging.authorityConnectors.error("Group base parameter missing but required");
           throw new ManifoldCFException("Group base parameter missing but required");
         }
         if (groupSearch == null || groupSearch.length() == 0) {
+          Logging.authorityConnectors.error("Group search expression missing but required");
           throw new ManifoldCFException("Group search expression missing but required");
         }
         if (groupNameAttr == null || groupNameAttr.length() == 0) {
+          Logging.authorityConnectors.error("Group name attribute missing but required");
           throw new ManifoldCFException("Group name attribute missing but required");
         }
         if (userNameAttr == null || userNameAttr.length() == 0) {
+          Logging.authorityConnectors.error("User name attribute missing but required");
           throw new ManifoldCFException("User name attribute missing but required");
         }
 
@@ -183,30 +193,13 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
         } else {
           sslKeystore = KeystoreManagerFactory.make("");
         }
-        
-        // Set thread local for keystore stuff
-        LDAPSSLSocketFactory.setSocketFactoryProducer(sslKeystore);
-
-        final String protocolToUse;
-        final boolean useTls;
-        if (serverProtocol == null || serverProtocol.length() == 0) {
-          protocolToUse = "ldap";
-          useTls = false;
-        } else {
-          int plusIndex = serverProtocol.indexOf("+");
-          if (plusIndex == -1) {
-            plusIndex = serverProtocol.length();
-            useTls = false;
-          } else {
-            useTls = true;
-          }
-          protocolToUse = serverProtocol.substring(0,plusIndex);
-        }
 
         final Hashtable env = new Hashtable();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, "ldap://" + serverName + ":" + serverPort + "/" + serverBase);
-        if (protocolToUse.equals("ldaps")) {
+        if (LDAPProtocolEnum.LDAPS.equals(ldapProtocol)) {
+          // Set thread local for keystore stuff
+          LDAPSSLSocketFactory.setSocketFactoryProducer(sslKeystore);
           env.put(Context.SECURITY_PROTOCOL, "ssl");
           env.put("java.naming.ldap.factory.socket", "org.apache.manifoldcf.core.common.LDAPSSLSocketFactory");
         }
@@ -217,17 +210,20 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
           env.put(Context.SECURITY_CREDENTIALS, bindPass);
         }
 
+        Logging.authorityConnectors.info("LDAP Context environment properties: " + printLdapContextEnvironment(env));
         session = new InitialLdapContext(env, null);
         
-        if (useTls) {
+        if (isLDAPTLS(ldapProtocol)) {
           // Start TLS
           StartTlsResponse tls = (StartTlsResponse) session.extendedOperation(new StartTlsRequest());
           tls.negotiate(sslKeystore.getSecureSocketFactory());
         }
         
       } else {
-        // Set thread local for keystore stuff
-        LDAPSSLSocketFactory.setSocketFactoryProducer(sslKeystore);
+        if (isLDAPS(ldapProtocol)) {
+          // Set thread local for keystore stuff
+          LDAPSSLSocketFactory.setSocketFactoryProducer(sslKeystore);
+        }
         session.reconnect(null);
       }
       sessionExpirationTime = System.currentTimeMillis() + 300000L;
@@ -235,24 +231,79 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
     } catch (AuthenticationException e) {
       session = null;
       sessionExpirationTime = -1L;
+      Logging.authorityConnectors.error("Authentication error: " + e.getMessage() + ", explanation: " + e.getExplanation(), e);
       throw new ManifoldCFException("Authentication error: " + e.getMessage() + ", explanation: " + e.getExplanation(), e);
     } catch (CommunicationException e) {
       session = null;
       sessionExpirationTime = -1L;
+      Logging.authorityConnectors.error("Communication error: " + e.getMessage(), e);
       throw new ManifoldCFException("Communication error: " + e.getMessage(), e);
     } catch (NamingException e) {
       session = null;
       sessionExpirationTime = -1L;
-      throw new ManifoldCFException("Naming error: " + e.getMessage(), e);
+      Logging.authorityConnectors.error("Naming exception: " + e.getMessage(), e);
+      throw new ManifoldCFException("Naming exception: " + e.getMessage(), e);
     } catch (InterruptedIOException e) {
       session = null;
       sessionExpirationTime = -1L;
+      Logging.authorityConnectors.error("Interrupted IO error: " + e.getMessage());
       throw new ManifoldCFException(e.getMessage(), ManifoldCFException.INTERRUPTED);
     } catch (IOException e) {
       session = null;
       sessionExpirationTime = -1L;
+      Logging.authorityConnectors.error("IO error: " + e.getMessage(), e);
       throw new ManifoldCFException("IO error: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Retrieves LDAPProtocol from serverProtocol String
+   *
+   * @return LDAPProtocolEnum
+   */
+  private LDAPProtocolEnum retrieveLDAPProtocol() {
+    if (serverProtocol == null || serverProtocol.length() == 0) {
+      return  LDAPProtocolEnum.LDAP;
+    }
+
+    final LDAPProtocolEnum ldapProtocol;
+    switch (serverProtocol.toUpperCase(Locale.ENGLISH)){
+      case "LDAP":
+        ldapProtocol = LDAPProtocolEnum.LDAP;
+        break;
+      case "LDAPS":
+        ldapProtocol = LDAPProtocolEnum.LDAPS;
+        break;
+      case "LDAP+TLS":
+        ldapProtocol = LDAPProtocolEnum.LDAP_TLS;
+        break;
+      case "LDAPS+TLS":
+        ldapProtocol = LDAPProtocolEnum.LDAPS_TLS;
+        break;
+      default:
+        ldapProtocol = LDAPProtocolEnum.LDAP;
+    }
+    return ldapProtocol;
+  }
+
+  /**
+   * Checks whether TLS is enabled for given LDAP Protocol
+   *
+   * @param ldapProtocol to check
+   * @return whether TLS is enabled or not
+   */
+  private boolean isLDAPTLS (LDAPProtocolEnum ldapProtocol){
+    return LDAPProtocolEnum.LDAP_TLS.equals(ldapProtocol) || LDAPProtocolEnum.LDAPS_TLS.equals(ldapProtocol);
+  }
+
+  /**
+   * Checks whether LDAPS or LDAPS with TLS is enabled for given LDAP Protocol
+   *
+   * @param ldapProtocol to check
+   * @return whether LDAPS or LDAPS with TLS is enabled or not
+   */
+  private boolean isLDAPS (LDAPProtocolEnum ldapProtocol){
+    return LDAPProtocolEnum.LDAPS.equals(ldapProtocol) || LDAPProtocolEnum.LDAPS_TLS.equals(ldapProtocol);
   }
 
   /**
@@ -453,9 +504,11 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
 
     } catch (NameNotFoundException e) {
       // This means that the user doesn't exist
+      Logging.authorityConnectors.error("User does not exists: "+ e.getMessage(), e);
       return RESPONSE_USERNOTFOUND;
     } catch (NamingException e) {
       // Unreachable
+      Logging.authorityConnectors.error("Response Unreachable: "+ e.getMessage(), e);
       return RESPONSE_UNREACHABLE;
     }
   }
@@ -471,6 +524,19 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
   public AuthorizationResponse getDefaultAuthorizationResponse(String userName) {
     // The default response if the getConnection method fails
     return RESPONSE_UNREACHABLE;
+  }
+
+  /**
+   * Stringifies LDAP Context environment variable
+   * @param env LDAP Context environment variable
+   * @return Stringified LDAP Context environment. Password is masked if set.
+   */
+  private String printLdapContextEnvironment(Hashtable env) {
+    Hashtable copyEnv = new Hashtable<>(env);
+    if (copyEnv.containsKey(Context.SECURITY_CREDENTIALS)){
+      copyEnv.put(Context.SECURITY_CREDENTIALS, "********");
+    }
+    return Arrays.toString(copyEnv.entrySet().toArray());
   }
 
   // UI support methods.
@@ -773,7 +839,7 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
       }
     } catch (ManifoldCFException e) {
       message = e.getMessage();
-      org.apache.manifoldcf.authorities.system.Logging.authorityConnectors.warn(e);
+      Logging.authorityConnectors.warn(e);
     }
 
     if(sslCertificatesMap != null)
@@ -787,7 +853,6 @@ public class LDAPAuthority extends org.apache.manifoldcf.authorities.authorities
    *
    * @param ctx is the ldap context to use.
    * @param userName (Domain Logon Name) is the user name or identifier.
-   * @param searchBase (Full Domain Name for the search ie:
    * DC=qa-ad-76,DC=metacarta,DC=com)
    * @return SearchResult for given domain user logon name. (Should throws an
    * exception if user is not found.)

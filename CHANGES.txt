@@ -1,7 +1,60 @@
 ManifoldCF Change Log
 $Id$
 
-======================= 2.5-dev =====================
+======================= 2.6-dev =====================
+
+
+======================= Release 2.5 =====================
+
+CONNECTORS-1335: Log message cleanup.
+(Furkan KAMACI)
+
+CONNECTORS-1316: Upgrade to Tika 1.13.
+(Furkan KAMACI)
+
+CONNECTORS-1334: Break out forbidden api check into separate
+precommit target.
+(Furkan KAMACI)
+
+CONNECTORS-1332: Add check for forbidden api's to ant build.
+(Furkan KAMACI)
+
+CONNECTORS-1238: Update to use SolrJ 5.5.2, ZooKeeper 3.4.8.
+(Karl Wright)
+
+CONNECTORS-1331: Do not set SSL socket factory unless SSL.
+(Furkan KAMACI)
+
+CONNECTORS-1330: Minor refactoring of LDAP connector.
+(Furkan KAMACI)
+
+CONNECTORS-1329: Add logging to LDAP connector.
+(Furkan KAMACI)
+
+CONNECTORS-1326: Fix URL for Confluence documents.
+(Chalitha Perera)
+
+CONNECTORS-1325: Deal with SharePoint bad XML when document has 
+optional plane utf-16 characters.  Documents with these are skipped
+since Java can't represent them either.
+(Karl Wright)
+
+CONNECTORS-1324: Fix (again) the SharePoint connector's "use all metadata"
+option.
+(Konstantin Avdeev)
+
+CONNECTORS-1323: When there were multiple outputs, the second,
+third, etc outputs would not have their activities properly logged.
+(Karl Wright)
+
+CONNECTORS-1322: Fix email connector "from" field.
+(Olivier Tavard)
+
+CONNECTORS-1318: Documentation errors.
+(KOIZUMI Satoru)
+
+CONNECTORS-1317: Missing JDOM2 dependency for Tika.
+(Karl Wright)
 
 CONNECTORS-1309: SharePoint connector would blow up looking for
 lists when SharePoint returned non-list entities.
